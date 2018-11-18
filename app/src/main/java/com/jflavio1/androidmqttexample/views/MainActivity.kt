@@ -1,6 +1,11 @@
 package com.jflavio1.androidmqttexample.views
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
+import android.support.annotation.RequiresApi
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.widget.Toast
@@ -19,13 +24,20 @@ import kotlinx.android.synthetic.main.activity_main.*
 class MainActivity : AppCompatActivity(), SensorsListView {
 
     lateinit var presenter: SensorsListPresenter
-    lateinit private var sensorsAdapter: SensorsAdapter
+    lateinit var sensorsAdapter: SensorsAdapter
+
+    companion object {
+        const val MISCELLANEOUS_CHANNEL_NAME = "Miscellaneous"
+        const val MISCELLANEOUS_CHANNEL_ID = "com.Miscellaneous"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         SensorsListPresenterImpl(this)
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createNotificationChannels()
+        }
         sensorsAdapter = SensorsAdapter(object : SensorsAdapter.SensorsAdapterListener {
             override fun onSensorLightClick(sensor: CustomLightSensor) {
                 presenter.changeLightState(sensor, !sensor.lightOn)
@@ -70,5 +82,27 @@ class MainActivity : AppCompatActivity(), SensorsListView {
     }
 
     override fun getViewContext() = this
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    fun createNotificationChannels() {
+        val miscChannel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            NotificationChannel(
+                MISCELLANEOUS_CHANNEL_ID, MISCELLANEOUS_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_LOW
+            )
+        } else {
+            NotificationChannel(
+                MISCELLANEOUS_CHANNEL_ID, MISCELLANEOUS_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_NONE
+            )
+        }
+        miscChannel.enableLights(false)
+        miscChannel.enableVibration(false)
+        miscChannel.setSound(null, null)
+        miscChannel.setShowBadge(false)
+        val notificationManager: NotificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(miscChannel)
+    }
 
 }

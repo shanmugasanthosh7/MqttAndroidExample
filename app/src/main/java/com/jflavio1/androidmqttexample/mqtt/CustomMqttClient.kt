@@ -13,7 +13,8 @@ import org.eclipse.paho.client.mqttv3.MqttCallback
  * @author Jose Flavio - jflavio90@gmail.com
  * @since  6/5/17
  */
-class CustomMqttClient(context: Context?, serverURI: String?, clientId: String?) : MqttAndroidClient(context, serverURI, clientId) {
+class CustomMqttClient(context: Context?, serverURI: String?, clientId: String?) :
+    MqttAndroidClient(context, serverURI, clientId) {
 
     lateinit var mqttCallback: MqttCallback
 
@@ -23,7 +24,12 @@ class CustomMqttClient(context: Context?, serverURI: String?, clientId: String?)
         return super.connect(userContext, callback)
     }
 
-    override fun subscribe(topic: String?, qos: Int, userContext: Any?, callback: IMqttActionListener?): IMqttToken {
+    override fun subscribe(
+        topic: String?,
+        qos: Int,
+        userContext: Any?,
+        callback: IMqttActionListener?
+    ): IMqttToken {
         log("Subscribing to topic $topic")
         return super.subscribe(topic, qos, userContext, callback)
     }

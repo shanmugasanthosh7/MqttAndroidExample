@@ -5,8 +5,10 @@ import android.app.Service
 import android.content.Intent
 import android.os.Binder
 import android.os.Build
+import android.support.v4.app.NotificationCompat
 import android.support.v4.content.LocalBroadcastManager
 import android.util.Log
+import com.jflavio1.androidmqttexample.views.MainActivity
 import org.eclipse.paho.client.mqttv3.*
 import org.json.JSONObject
 
@@ -40,21 +42,23 @@ class SensorsMqttService : Service(), BaseMqttModel {
         val TOPICS = arrayOf("home_sensors_info", "home_lights")
     }
 
-    override fun onCreate() {
-        super.onCreate()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // TODO create notification for showing on Android Oreo: "You are listening to temperature changes on real time"
-            startForeground(0, Notification())
-        }
-        logMqtt("Created mqtt service...")
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // TODO create notification for showing on Android Oreo: "You are listening to temperature changes on real time"
+            val builder = NotificationCompat.Builder(
+                this,
+                MainActivity.MISCELLANEOUS_CHANNEL_ID
+            )
+            builder.setAutoCancel(true)
+            startForeground(7, builder.build())
+            //stopForeground(true)
+        }
+        logMqtt("Created mqtt service...")
         // TODO getting Build.SERIAL will no work on Android P
         this.mqttCliendId = Build.SERIAL
 
-        if(intent == null) {
+        if (intent == null) {
             logErrorMqtt("Null intent in onStartCommand, returning START_NOT_STICKY")
             stopSelf()
             return Service.START_NOT_STICKY
@@ -89,15 +93,17 @@ class SensorsMqttService : Service(), BaseMqttModel {
             keepAliveInterval = 120
         }
 
-        mqttClient.connect(options,this, object : IMqttActionListener {
+        mqttClient.connect(options, this, object : IMqttActionListener {
             override fun onSuccess(asyncActionToken: IMqttToken?) {
                 logMqtt("Success connecting to server...")
-                LocalBroadcastManager.getInstance(this@SensorsMqttService).sendBroadcast(Intent(CONNECTION_SUCCESS))
+                LocalBroadcastManager.getInstance(this@SensorsMqttService)
+                    .sendBroadcast(Intent(CONNECTION_SUCCESS))
             }
 
             override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                 logErrorMqtt("Error on connecting to server... retry?: ${exception!!.toString()}")
-                LocalBroadcastManager.getInstance(this@SensorsMqttService).sendBroadcast(Intent(CONNECTION_FAILURE))
+                LocalBroadcastManager.getInstance(this@SensorsMqttService)
+                    .sendBroadcast(Intent(CONNECTION_FAILURE))
                 disconnectFromServer()
             }
         })
@@ -112,7 +118,8 @@ class SensorsMqttService : Service(), BaseMqttModel {
                 logMqtt("Disconnected from server attempt success...")
                 mqttClient.unregisterResources()
                 SensorsMqttService@ mqttClient.close()
-                LocalBroadcastManager.getInstance(this@SensorsMqttService).sendBroadcast(Intent(DISCONNECT_SUCCESS))
+                LocalBroadcastManager.getInstance(this@SensorsMqttService)
+                    .sendBroadcast(Intent(DISCONNECT_SUCCESS))
                 stopSelf()
             }
 
@@ -123,7 +130,12 @@ class SensorsMqttService : Service(), BaseMqttModel {
         })
     }
 
-    override fun subscribeToTopic(topicName: String, qos: Int, subscriptionListener: IMqttActionListener?, messageListener: IMqttMessageListener?) {
+    override fun subscribeToTopic(
+        topicName: String,
+        qos: Int,
+        subscriptionListener: IMqttActionListener?,
+        messageListener: IMqttMessageListener?
+    ) {
         logMqtt("Subscribing to topic $topicName")
         this.mqttClient.subscribe(topicName, qos, this, subscriptionListener, messageListener)
     }
@@ -135,8 +147,8 @@ class SensorsMqttService : Service(), BaseMqttModel {
     /**
      * Publish a [MqttMessage] into the specified [topicName].
      */
-    fun publish(topicName: String, message: MqttMessage){
-        this.mqttClient.publish(topicName, message, this, object: IMqttActionListener{
+    fun publish(topicName: String, message: MqttMessage) {
+        this.mqttClient.publish(topicName, message, this, object : IMqttActionListener {
             override fun onSuccess(asyncActionToken: IMqttToken?) {
                 logMqtt("Message was sent to topic $topicName")
             }
